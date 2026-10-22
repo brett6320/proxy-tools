@@ -109,7 +109,12 @@ if [ "$INSECURE" -eq 1 ]; then
 elif [ -n "$CACERT" ]; then
 	[ -r "$CACERT" ] || die "cannot read CA bundle: $CACERT"
 	TRUST_DESC="$CACERT (from --cacert)"
-	CURL_TRUST=(--cacert "$CACERT")
+	# Trust only this bundle: an empty --capath overrides curl's built-in
+	# CA directory (e.g. Debian's /etc/ssl/certs), and the env var stops
+	# Apple's LibreSSL falling back to the keychain when verification fails.
+	mkdir "$TMPDIR_RUN/capath"
+	CURL_TRUST=(--cacert "$CACERT" --capath "$TMPDIR_RUN/capath")
+	export OPENSSL_X509_TEA_DISABLE=1
 else
 	case "$(uname -s)" in
 	Darwin)
@@ -153,6 +158,27 @@ else
 fi
 
 # ---------------------------------------------------------------------- proxy
+url_host() {
+	printf '%s\n' "$1" | sed -E 's#^[A-Za-z][A-Za-z0-9+.-]*://##; s#[/?].*##; s#^.*@##; s#:[0-9]*$##' |
+		tr '[:upper:]' '[:lower:]'
+}
+
+# Mirrors curl's NO_PROXY matching: "*", exact host, or domain suffix.
+no_proxy_match() {
+	local host=$1 entry
+	local -a entries
+	IFS=', ' read -r -a entries <<<"$2"
+	for entry in ${entries[@]+"${entries[@]}"}; do
+		[ "$entry" = "*" ] && return 0
+		entry=$(printf '%s' "$entry" | tr '[:upper:]' '[:lower:]' | sed -E 's/:[0-9]+$//; s/^\*//; s/^\.//')
+		[ -n "$entry" ] || continue
+		case "$host" in
+		"$entry" | *."$entry") return 0 ;;
+		esac
+	done
+	return 1
+}
+
 CURL_PROXY=()
 if [ -n "$PROXY" ]; then
 	PROXY_DESC="$(printf '%s' "$PROXY" | redact) (from --proxy)"
@@ -175,7 +201,11 @@ else
 	if [ -n "$envp" ]; then
 		PROXY_DESC="$(printf '%s' "$envp" | redact) (from \$$envname)"
 		nop="${NO_PROXY:-${no_proxy:-}}"
-		[ -n "$nop" ] && PROXY_DESC="$PROXY_DESC; NO_PROXY=$nop"
+		if [ -n "$nop" ]; then
+			PROXY_DESC="$PROXY_DESC; NO_PROXY=$nop"
+			no_proxy_match "$(url_host "$URL")" "$nop" &&
+				PROXY_DESC="$PROXY_DESC -> bypassed for this host"
+		fi
 	else
 		PROXY_DESC="none (direct)"
 	fi
@@ -194,6 +224,19 @@ curl -sS -L --max-time "$TIMEOUT" \
 	${CURL_TRUST[@]+"${CURL_TRUST[@]}"} \
 	-o "$BODY" -w "$WOUT" "$URL" >"$META" 2>"$ERR"
 rc=$?
+
+# Verification failed: probe again without verifying, keeping only the
+# certificate chain (never the page), so the inspecting CA can be seen.
+TLS_FAILED=0
+case "$rc" in
+60 | 35 | 58 | 77)
+	TLS_FAILED=1
+	curl -s -L --max-time "$TIMEOUT" --insecure \
+		${CURL_PROXY[@]+"${CURL_PROXY[@]}"} \
+		-o /dev/null -w '--CERTS--\n%{certs}' "$URL" >"$META.chain" 2>/dev/null
+	sed -n '/^--CERTS--$/,$p' "$META.chain" >>"$META"
+	;;
+esac
 set -e
 
 meta() { sed -n "s/^$1=//p" "$META" | head -1; }
@@ -202,17 +245,18 @@ echo "== Request"
 printf '  %-18s %s\n' "URL:" "$URL"
 printf '  %-18s %s\n' "Proxy:" "$PROXY_DESC"
 printf '  %-18s %s\n' "Trust store:" "$TRUST_DESC"
-printf '  %-18s %s\n' "Connected to:" "$(meta remote_ip)"
-printf '  %-18s %s\n' "HTTP status:" "$(meta http_code) (HTTP/$(meta http_version))"
+[ -n "$(meta remote_ip)" ] && printf '  %-18s %s\n' "Connected to:" "$(meta remote_ip)"
+case "$(meta http_code)" in
+"" | 000) ;;
+*) printf '  %-18s %s\n' "HTTP status:" "$(meta http_code) (HTTP/$(meta http_version))" ;;
+esac
 
 if [ "$rc" -ne 0 ]; then
-	printf '  %-18s curl exit %s: %s\n' "Error:" "$rc" "$(tr -d '\n' <"$ERR")"
-	case "$rc" in
-	60 | 35 | 58 | 77)
+	printf '  %-18s curl exit %s: %s\n' "Error:" "$rc" "$(head -1 "$ERR")"
+	if [ "$TLS_FAILED" -eq 1 ]; then
 		echo "  Hint: certificate verification failed. If traffic is SSL-inspected,"
 		echo "        pass the inspecting CA with --cacert, or use -k to inspect anyway."
-		;;
-	esac
+	fi
 fi
 
 # ------------------------------------------------------------------------ POP
@@ -257,7 +301,7 @@ echo "== Certificate chain"
 # curl's %{certs} emits "Field:value" lines per certificate (OpenSSL,
 # LibreSSL and SecureTransport backends); OpenSSL builds also include a
 # PEM "Cert:" block. Each certificate starts at its Subject: line.
-certs=$(sed -n '/^--CERTS--$/,$p' "$META" | sed 1d)
+certs=$(awk '/^--CERTS--$/ { n++; next } n' "$META")
 if [ -z "$certs" ]; then
 	case "$URL" in
 	https://*) echo "  Not available (needs curl >= 7.88, or TLS handshake failed)." ;;
@@ -293,7 +337,9 @@ else
 		echo "  SSL inspection: not detected (publicly issued chain)"
 	fi
 	sv=$(meta ssl_verify)
-	if [ "$INSECURE" -eq 0 ] && [ -n "$sv" ]; then
+	if [ "$TLS_FAILED" -eq 1 ]; then
+		echo "  Verification:   FAILED (curl exit $rc)"
+	elif [ "$INSECURE" -eq 0 ] && [ -n "$sv" ]; then
 		[ "$sv" = "0" ] && echo "  Verification:   OK" || echo "  Verification:   FAILED (code $sv)"
 	fi
 fi
