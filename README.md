@@ -171,3 +171,9 @@ tests/run-linux.sh
 It needs Docker and network access. Saved pages go in `samples/`, which git
 ignores; the suite needs `samples/notskope.html`. Untested so far: a live
 Netskope-steered connection and Windows PowerShell 5.1.
+
+## License
+
+Free to use, run, copy and modify for any purpose, including inside your
+own organization. Distributing it to anyone else requires the author's
+written permission. See [LICENSE](LICENSE) for the terms.
