@@ -174,6 +174,8 @@ Netskope-steered connection and Windows PowerShell 5.1.
 
 ## License
 
-Free to use, run, copy and modify for any purpose, including inside your
-own organization. Distributing it to anyone else requires the author's
-written permission. See [LICENSE](LICENSE) for the terms.
+For internal use only: you may use, run, copy and modify it within your own
+organization. Using it to support or provide services to clients or
+customers requires a specific, express license from the author, and
+distributing it requires the author's written permission. See
+[LICENSE](LICENSE) for the terms.

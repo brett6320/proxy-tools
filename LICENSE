@@ -1,31 +1,34 @@
 proxy-tools License
 
-Copyright (c) 2026 Brett. All rights reserved.
+Copyright (c) 2026 brett6320 (the "author"). All rights reserved.
 
-1. Use. Permission is hereby granted, free of charge, to any person who
-   obtains a copy of this software and its documentation (the "Software")
-   to use, run, copy and modify the Software for any purpose, including
-   commercial purposes, without restriction, subject to the conditions
-   below.
+1. Use. Permission is hereby granted, free of charge, to any person or
+   organization that obtains a copy of this software and its documentation
+   (the "Software") to use, run, copy and modify the Software solely for
+   internal use within that person's or organization's own operations,
+   subject to the conditions below. Copies made within a single
+   organization for that purpose, by its employees and contractors, are
+   permitted.
 
-2. Distribution. You may not distribute, publish, sublicense, sell, or
+2. Client Use. The Software may not be used to provide services to, or to
+   support, diagnose, manage or troubleshoot the systems, networks or
+   users of, any client, customer or other third party, whether or not for
+   a fee, without a specific, express license in writing from the author.
+
+3. Distribution. You may not distribute, publish, sublicense, sell, or
    otherwise make the Software, any modified version of it, or any
    substantial portion of it available to any third party, by any means,
    without the prior written permission of the author. Distribution
    includes, without limitation, hosting the Software for download, and
    including it in packages, images, products or other bundles.
 
-   Copies made within a single organization for that organization's own
-   internal use, by its employees and contractors, are use under section 1
-   and are not distribution.
-
-3. Notice. The above copyright notice and this license must be kept in all
+4. Notice. The above copyright notice and this license must be kept in all
    copies and modified versions of the Software.
 
-4. Termination. Any breach of these terms terminates the rights granted by
+5. Termination. Any breach of these terms terminates the rights granted by
    this license.
 
-5. No Warranty. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY
+6. No Warranty. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY
    KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
    MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
    NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
@@ -33,5 +36,5 @@ Copyright (c) 2026 Brett. All rights reserved.
    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
 
-Requests for permission to distribute may be made to the author through
-https://github.com/brett6320/proxy-tools.
+Requests for client-use licenses or permission to distribute may be made
+to the author through https://github.com/brett6320/proxy-tools.
